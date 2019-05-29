@@ -1,0 +1,3 @@
+[submodule "gluon-cv"]
+	path = gluon-cv
+	url = https://github.com/dmlc/gluon-cv.git
