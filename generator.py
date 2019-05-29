@@ -1,6 +1,17 @@
+from mxnet import cpu, initializer
 from mxnet.gluon import HybridBlock
 from mxnet.gluon import nn
-from mxnet import cpu
+
+
+@initializer.register
+class ShiftNormal(initializer.Initializer):
+    def __init__(self, mean=0.0, sigma=0.01):
+        super(ShiftNormal, self).__init__(mean=mean, sigma=sigma)
+        self.sigma = sigma
+        self.mean = mean
+
+    def _init_weight(self, _, arr):
+        initializer.random.normal(self.mean, self.sigma, out=arr)
 
 
 def _encoder_module(in_channesl, out_channels, norm_layer=nn.BatchNorm, norm_kwargs=None):
@@ -71,8 +82,13 @@ class defineG_encoder_decoder(HybridBlock):
             self.decoder.add(*[decoder_1, decoder_2, decoder_3, decoder_4,
                                decoder_5, decoder_6, decoder_7, decoder_8])
             self.decoder.add(nn.Activation('tanh'))
-        self.encoder.initialize(ctx=ctx)
-        self.decoder.initialize(ctx=ctx)
+
+        self.encoder.collect_params('.*weight').initialize(ctx=ctx, init=ShiftNormal(0, 0.02))
+        self.encoder.collect_params('.*gamma|.*running_var').initialize(ctx=ctx, init=ShiftNormal(1.0, 0.02))
+        self.encoder.collect_params('.*bias|.*running_mean|.*beta').initialize(ctx=ctx, init=initializer.Zero())
+        self.decoder.collect_params('.*weight').initialize(ctx=ctx, init=ShiftNormal(0, 0.02))
+        self.decoder.collect_params('.*gamma|.*running_var').initialize(ctx=ctx, init=ShiftNormal(1.0, 0.02))
+        self.decoder.collect_params('.*bias|.*running_mean|.*beta').initialize(ctx=ctx, init=initializer.Zero())
 
     def hybrid_forward(self, F, x):
         x = self.encoder(x)
@@ -107,8 +123,13 @@ class defineG_unet(HybridBlock):
             decoder_8 = _decoder_module(ngf * 1 * 2, output_nc, norm_layer=None)
             self.decoder.add(*[decoder_1, decoder_2, decoder_3, decoder_4,
                                decoder_5, decoder_6, decoder_7, decoder_8])
-        self.encoder.initialize(ctx=ctx)
-        self.decoder.initialize(ctx=ctx)
+
+        self.encoder.collect_params('.*weight').initialize(ctx=ctx, init=ShiftNormal(0, 0.02))
+        self.encoder.collect_params('.*gamma|.*running_var').initialize(ctx=ctx, init=ShiftNormal(1.0, 0.02))
+        self.encoder.collect_params('.*bias|.*running_mean|.*beta').initialize(ctx=ctx, init=initializer.Zero())
+        self.decoder.collect_params('.*weight').initialize(ctx=ctx, init=ShiftNormal(0, 0.02))
+        self.decoder.collect_params('.*gamma|.*running_var').initialize(ctx=ctx, init=ShiftNormal(1.0, 0.02))
+        self.decoder.collect_params('.*bias|.*running_mean|.*beta').initialize(ctx=ctx, init=initializer.Zero())
 
     def hybrid_forward(self, F, x):
         encodings = []
@@ -127,9 +148,9 @@ class defineG_unet(HybridBlock):
 
 if __name__ == '__main__':
     generater = defineG_unet(3, 3, 16)
-    import mxnet as mx
+    print(generater._collect_params_with_prefix().keys())
 
-    x = mx.nd.random.randn(1, 3, 256, 256)
-    y = generater(x)
-    print(y.shape)
+    # x = mx.nd.random.randn(1, 3, 256, 256)
+    # y = generater(x)
+    # print(y.shape)
     # print(generater)
