@@ -7,6 +7,9 @@
           <mappings>
             <mapping deploy="/home/chenyifeng/Pix2pix" local="$PROJECT_DIR$" web="/" />
           </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/gluon-cv" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>
